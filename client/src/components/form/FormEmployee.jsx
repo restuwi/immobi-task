@@ -11,18 +11,22 @@ import {
   Textarea,
 } from "@chakra-ui/react";
 import React from "react";
-import { findAll } from "../../libs/api/call/job";
+import { findAll, findOneByDepartment } from "../../libs/api/call/job";
+import { findAll as findAllDepartment } from "../../libs/api/call/department";
 import { create, edit } from "../../libs/api/call/employee";
+
 import AlertSwal from "../alert/AlertSwal";
 
 const FormEmployee = ({ fetchEmployee, onClose, initialValues }) => {
+  const [departments, setDepartments] = React.useState([]);
   const [jobs, setJobs] = React.useState([]);
   const [formData, setFormData] = React.useState({
     name: "",
     age: "",
     gender: "M",
     birth_date: "",
-    job_id: 1,
+    job_id: 0,
+    department_id: 0,
     address: "",
   });
 
@@ -37,9 +41,18 @@ const FormEmployee = ({ fetchEmployee, onClose, initialValues }) => {
     }
   }, [initialValues]);
 
-  const getJobs = async () => {
+  const getDepartments = async () => {
     try {
-      const response = await findAll();
+      const response = await findAllDepartment();
+      setDepartments(response.data.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const getJobs = async (id) => {
+    try {
+      const response = await findOneByDepartment(id);
       setJobs(response.data.data);
     } catch (error) {
       console.log(error);
@@ -47,14 +60,21 @@ const FormEmployee = ({ fetchEmployee, onClose, initialValues }) => {
   };
 
   React.useEffect(() => {
-    getJobs();
+    getDepartments();
   }, []);
+
+  React.useEffect(() => {
+    getJobs(formData.department_id);
+  }, [formData.department_id]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "job_id" || name === "age" ? +value : value,
+      [name]:
+        name === "job_id" || name === "age" || name === "department_id"
+          ? +value
+          : value,
     }));
   };
 
@@ -67,9 +87,10 @@ const FormEmployee = ({ fetchEmployee, onClose, initialValues }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const { department_id, ...employeeData } = formData;
     try {
       if (initialValues) {
-        await edit(formData.id, formData);
+        await edit(formData.id, employeeData);
         AlertSwal.success("Employee has been updated");
       } else {
         await create(formData);
@@ -85,7 +106,7 @@ const FormEmployee = ({ fetchEmployee, onClose, initialValues }) => {
   return (
     <form onSubmit={handleSubmit}>
       <Grid templateColumns="repeat(2, 1fr)" gap={2}>
-        <GridItem colSpan={2}>
+        <GridItem colSpan={{ base: 2, md: 1 }}>
           <FormControl isRequired>
             <FormLabel>Name</FormLabel>
             <Input
@@ -109,6 +130,18 @@ const FormEmployee = ({ fetchEmployee, onClose, initialValues }) => {
             />
           </FormControl>
         </GridItem>
+
+        <GridItem colSpan={{ base: 2, md: 1 }}>
+          <FormControl isRequired>
+            <FormLabel>Birth Date</FormLabel>
+            <Input
+              type="date"
+              name="birth_date"
+              value={formData.birth_date}
+              onChange={handleChange}
+            />
+          </FormControl>
+        </GridItem>
         <GridItem p={{ base: 0, md: 2 }} colSpan={{ base: 2, md: 1 }}>
           <FormControl isRequired>
             <FormLabel>Gender</FormLabel>
@@ -126,15 +159,22 @@ const FormEmployee = ({ fetchEmployee, onClose, initialValues }) => {
         </GridItem>
         <GridItem colSpan={{ base: 2, md: 1 }}>
           <FormControl isRequired>
-            <FormLabel>Birth Date</FormLabel>
-            <Input
-              type="date"
-              name="birth_date"
-              value={formData.birth_date}
+            <FormLabel>Department</FormLabel>
+            <Select
+              name="department_id"
+              placeholder="Select Department"
+              value={formData.department_id}
               onChange={handleChange}
-            />
+            >
+              {departments.map((department) => (
+                <option key={department.id} value={department.id}>
+                  {department.department_name}
+                </option>
+              ))}
+            </Select>
           </FormControl>
         </GridItem>
+
         <GridItem colSpan={{ base: 2, md: 1 }}>
           <FormControl isRequired>
             <FormLabel>Job Title</FormLabel>
@@ -144,11 +184,15 @@ const FormEmployee = ({ fetchEmployee, onClose, initialValues }) => {
               value={formData.job_id}
               onChange={handleChange}
             >
-              {jobs.map((job) => (
-                <option key={job.id} value={job.id}>
-                  {job.job_title}
-                </option>
-              ))}
+              {jobs ? (
+                jobs?.map((job) => (
+                  <option key={job?.id} value={job?.id}>
+                    {job?.job_title}
+                  </option>
+                ))
+              ) : (
+                <option value="">Job Not Found</option>
+              )}
             </Select>
           </FormControl>
         </GridItem>

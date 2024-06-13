@@ -12,6 +12,10 @@ export const findOne = async (id) => {
   return await api.get(`/job/${id}`);
 };
 
+export const findOneByDepartment = async (id) => {
+  return await api.get(`/jobs/department/${id}`);
+};
+
 export const edit = async (id, payload) => {
   return await api.put(`/job/${id}`, payload);
 };

@@ -31,6 +31,12 @@ export const findOne = async (id) => {
   });
 };
 
+export const findAllByDepartment = async (id) => {
+  return await Job.findAll({
+    where: { department_id: id },
+  });
+};
+
 export const edit = async (id, payload) => {
   const [rowsUpdated] = await Job.update(payload, { where: { id } });
   if (rowsUpdated === 0) {
